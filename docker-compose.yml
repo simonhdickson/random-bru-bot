@@ -1,0 +1,7 @@
+version: '3'
+services:
+  conduit:
+    image: docker.io/matrixconduit/matrix-conduit:latest
+    restart: always
+    ports:
+      - "8448:8000"
