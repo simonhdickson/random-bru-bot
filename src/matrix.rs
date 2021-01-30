@@ -1,12 +1,8 @@
 use matrix_sdk::{
     self,
     api::r0::room::{create_room, Visibility},
-    async_trait,
-    events::{
-        room::message::{MessageEventContent, TextMessageEventContent},
-        AnyMessageEventContent, SyncMessageEvent,
-    },
-    Client, ClientConfig, EventEmitter, RoomState, SyncSettings,
+    events::{room::message::MessageEventContent, AnyMessageEventContent},
+    Client, ClientConfig, SyncSettings,
 };
 use url::Url;
 
