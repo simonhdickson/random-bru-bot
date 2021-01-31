@@ -7,11 +7,12 @@ edition = "2018"
 [dependencies]
 argh = "0.1"
 chrono = "0.4"
-chrono-tz = "0.5"
 cron = "0.7"
 dirs = "3.0"
+log = "0.4"
 matrix-sdk = { git = "https://github.com/matrix-org/matrix-rust-sdk" }
 rand = "0.8"
+regex = "1.4"
 tokio = { version = "1.1", default-features = false, features = ["macros", "rt-multi-thread", "time"] }
 tracing-subscriber = "0.2"
 url = "2.2"

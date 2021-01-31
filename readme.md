@@ -11,7 +11,7 @@ docker-compose up -d
 curl -XPOST -d '{"username":"random_bru_bot", "password":"wordpass", "auth": {"type":"m.login.dummy"}}' "http://localhost:8448/_matrix/client/r0/register"
 
 # Start service
-cargo run http://localhost:8448 random_bru_bot wordpass
+cargo run http://localhost:8448
 ```
 
 Connect with a client (I use `Spectral` for local testing) and join the channel called `Random Bru`.

@@ -33,10 +33,24 @@ struct BruBotArgs {
 
     #[argh(
         option,
+        description = "room name",
+        default = "String::from(\"Random Bru\")"
+    )]
+    room_name: String,
+
+    #[argh(
+        option,
         description = "cron",
         default = "String::from(\"0 0 9 * * Mon *\")"
     )]
     cron: String,
+
+    #[argh(
+        option,
+        description = "ignored members",
+        default = "String::from(\"-bot$\")"
+    )]
+    ignored_members: String,
 }
 
 #[tokio::main]
@@ -45,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let args: BruBotArgs = argh::from_env();
 
-    let bot = Bot::new(args.homeserver_url, args.username, args.password).await?;
+    let bot = Bot::new(args.homeserver_url, args.username, args.password, args.room_name, args.ignored_members).await?;
 
     let cron_job = BruTimeJob::new(bot.clone(), args.cron);
 

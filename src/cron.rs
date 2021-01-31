@@ -2,6 +2,7 @@ use std::{str::FromStr, time::Duration};
 
 use chrono::Local;
 use cron::Schedule;
+use log::info;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
@@ -24,7 +25,7 @@ impl BruTimeJob {
         loop {
             let next = schedule.upcoming(Local).next().unwrap();
 
-            println!("next run: {:#?}", next);
+            info!("next run: {:#?}", next);
 
             loop {
                 if next < Local::now() {
@@ -47,7 +48,7 @@ impl BruTimeJob {
                     1 => {
                         let first = members.pop().unwrap();
 
-                        message.push_str(&format!("{}. {}", count, first));
+                        message.push_str(&format!("{}. {}\n", count, first.friendly_name));
                     }
                     3 => {
                         let first = members.pop().unwrap();
@@ -55,13 +56,13 @@ impl BruTimeJob {
                         let third = members.pop().unwrap();
 
                         message
-                            .push_str(&format!("{}. {}, {} and {}", count, first, second, third));
+                            .push_str(&format!("{}. {}, {} and {}\n", count, first.friendly_name, second.friendly_name, third.friendly_name));
                     }
                     _ => {
                         let first = members.pop().unwrap();
                         let second = members.pop().unwrap();
 
-                        message.push_str(&format!("{}. {} and {}", count, first, second));
+                        message.push_str(&format!("{}. {} and {}\n", count, first.friendly_name, second.friendly_name));
                     }
                 }
 
