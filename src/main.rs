@@ -44,7 +44,7 @@ struct BruBotArgs {
     #[argh(
         option,
         description = "cron",
-        default = "String::from(\"0/5 * * * * * *\")"
+        default = "String::from(\"0 0 9 * * Mon *\")"
     )]
     cron: String,
 
