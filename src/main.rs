@@ -1,5 +1,8 @@
+#![feature(map_first_last, binary_heap_into_iter_sorted)]
+
 mod cron;
 mod matrix;
+mod picker;
 
 use argh::FromArgs;
 use matrix::Bot;
@@ -20,7 +23,7 @@ struct BruBotArgs {
     #[argh(
         option,
         description = "username",
-        default = "String::from(\"random_bru\")"
+        default = "String::from(\"random_bru_bot\")"
     )]
     username: String,
 
@@ -41,7 +44,7 @@ struct BruBotArgs {
     #[argh(
         option,
         description = "cron",
-        default = "String::from(\"0 0 9 * * Mon *\")"
+        default = "String::from(\"0/5 * * * * * *\")"
     )]
     cron: String,
 
@@ -59,7 +62,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let args: BruBotArgs = argh::from_env();
 
-    let bot = Bot::new(args.homeserver_url, args.username, args.password, args.room_name, args.ignored_members).await?;
+    let bot = Bot::new(
+        args.homeserver_url,
+        args.username,
+        args.password,
+        args.room_name,
+        args.ignored_members,
+    )
+    .await?;
 
     let cron_job = BruTimeJob::new(bot.clone(), args.cron);
 

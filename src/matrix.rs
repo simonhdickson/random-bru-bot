@@ -12,7 +12,7 @@ pub struct Bot {
     client: Client,
     username: String,
     room_name: String,
-    ignored_members: Regex
+    ignored_members: Regex,
 }
 
 impl Bot {
@@ -21,7 +21,7 @@ impl Bot {
         username: String,
         password: String,
         room_name: String,
-        ignored_members: String
+        ignored_members: String,
     ) -> Result<Bot, Box<dyn std::error::Error>> {
         let ignored_members = Regex::new(&ignored_members)?;
 
@@ -35,11 +35,14 @@ impl Bot {
 
         let client = Client::new_with_config(homeserver_url, client_config)?;
 
-        client
-            .login(&username, &password, None, None)
-            .await?;
+        client.login(&username, &password, None, None).await?;
 
-        Ok(Self { client, username, room_name, ignored_members })
+        Ok(Self {
+            client,
+            username,
+            room_name,
+            ignored_members,
+        })
     }
 
     pub async fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
@@ -93,7 +96,7 @@ impl Bot {
             .iter()
             .map(|m| Member {
                 user_id: m.user_id().localpart().to_owned(),
-                friendly_name: m.name().to_owned()
+                friendly_name: m.name().to_owned(),
             })
             .filter(|r| *r.user_id != self.username)
             .filter(|r| !self.ignored_members.is_match(&r.user_id))
@@ -105,5 +108,5 @@ impl Bot {
 
 pub struct Member {
     pub user_id: String,
-    pub friendly_name: String
+    pub friendly_name: String,
 }

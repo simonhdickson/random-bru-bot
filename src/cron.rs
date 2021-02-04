@@ -55,14 +55,19 @@ impl BruTimeJob {
                         let second = members.pop().unwrap();
                         let third = members.pop().unwrap();
 
-                        message
-                            .push_str(&format!("{}. {}, {} and {}\n", count, first.friendly_name, second.friendly_name, third.friendly_name));
+                        message.push_str(&format!(
+                            "{}. {}, {} and {}\n",
+                            count, first.friendly_name, second.friendly_name, third.friendly_name
+                        ));
                     }
                     _ => {
                         let first = members.pop().unwrap();
                         let second = members.pop().unwrap();
 
-                        message.push_str(&format!("{}. {} and {}\n", count, first.friendly_name, second.friendly_name));
+                        message.push_str(&format!(
+                            "{}. {} and {}\n",
+                            count, first.friendly_name, second.friendly_name
+                        ));
                     }
                 }
 
