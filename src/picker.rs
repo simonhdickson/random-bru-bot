@@ -1,73 +1,161 @@
-use std::{cmp::Ordering, collections::{BTreeMap, BTreeSet}};
+use std::{
+    cmp::Ordering,
+    collections::{BTreeSet, HashMap},
+    hash::{Hash, Hasher},
+};
 
-#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Eq)]
 pub struct Person {
     name: String,
+    weightings: HashMap<String, usize>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Weighting(usize, Person);
-
-impl Ord for Weighting {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.cmp(&other.0)
-            .then_with(|| self.1.cmp(&other.1))
+impl Hash for Person {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
     }
 }
 
-impl PartialOrd for Weighting {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+impl PartialEq for Person {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+impl PartialOrd for Person {
+    fn partial_cmp(&self, other: &Person) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct PeopleWeighting(BTreeMap<Person, BTreeSet<Weighting>>);
+impl Ord for Person {
+    fn cmp(&self, other: &Person) -> Ordering {
+        self.name.cmp(&other.name)
+    }
+}
 
-impl PeopleWeighting {
-    pub fn new() -> PeopleWeighting {
-        PeopleWeighting(BTreeMap::new())
+impl Person {
+    fn new(name: String) -> Person {
+        Self {
+            name,
+            weightings: HashMap::new(),
+        }
     }
 
-    pub fn push(&mut self, person: Person) {
-        let mut value = BTreeSet::new();
+    fn get_weighting(&self, person: &Person) -> usize {
+        *self.weightings.get(&person.name).unwrap_or_else(|| &0)
+    }
 
-        for (p, heap) in self.0.iter_mut() {
-            heap.insert(Weighting(0, person.clone()));
-            value.insert(Weighting(0, p.clone()));
+    fn update_weighting(&mut self, people: Vec<Person>) {
+        for p in people.iter() {
+            if !self.weightings.contains_key(&p.name) {
+                self.weightings.insert(p.name.to_owned(), 0);
+            }
         }
 
-        self.0.insert(person, value);
+        for (p, val) in self.weightings.iter_mut() {
+            if people.contains(&Person::new(p.to_owned())) {
+                *val = 0;
+            } else {
+                *val += 1;
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct PersonSet {
+    previous_dealer: Option<Person>,
+    people: BTreeSet<Person>
+}
+
+impl PersonSet {
+    pub fn new() -> Self {
+        Self {
+            previous_dealer: None,
+            people: BTreeSet::new()
+        }
     }
 
-    pub fn apply_picks(&mut self, picks: Vec<Pick>) {
-        for pick in picks {
+    pub fn add_person(&mut self, person: String) {
+        self.people.insert(Person::new(person));
+    }
+    
+    fn get_next_picker(&self, last_pick: &Option<Person>) -> Option<Person> {
+        match last_pick {
+            Some(last_pick) => {
+                let candidate = self.people.iter().skip_while(|p| p != &last_pick).skip(1).next().cloned();
+
+                candidate.or_else(||self.people.first().cloned())
+            },
+            None => self.people.first().cloned(),
+        }
+    } 
+
+    pub fn apply_picks(&mut self, picks: Vec<Pick>, dealer: Option<Person>) {
+        self.previous_dealer = dealer;
+        for pick in picks.iter() {
             match pick {
                 Pick::Pair(a, b) => {
-                    self.increment_weighting(a, b);
-                },
+                    let mut a = self.people.get(a).unwrap().clone();
+                    let mut b = self.people.get(b).unwrap().clone();
+                    a.update_weighting(vec![b.clone()]);
+                    b.update_weighting(vec![a.clone()]);
+                    self.people.replace(a);
+                    self.people.replace(b);
+                }
                 Pick::Triple(a, b, c) => {
-                    self.increment_weighting(a.clone(), b.clone());
-                    self.increment_weighting(a, c.clone());
-                    self.increment_weighting(b.clone(), c);
-
-                },
+                    let mut a = self.people.take(a).unwrap();
+                    let mut b = self.people.take(b).unwrap();
+                    let mut c = self.people.take(c).unwrap();
+                    a.update_weighting(vec![b.clone(), c.clone()]);
+                    b.update_weighting(vec![a.clone(), c.clone()]);
+                    c.update_weighting(vec![a.clone(), b.clone()]);
+                    self.people.replace(a);
+                    self.people.replace(b);
+                    self.people.replace(c);
+                }
             }
         }
     }
 
-    pub fn increment_weighting(&mut self, person_a: Person, person_b: Person) {
-        self.increment(person_a.clone(), person_b.clone());
-        self.increment(person_b, person_a);
-    }
+    pub fn make_selection(mut self) -> (Vec<Pick>, Option<Person>) {
+        let mut result = Vec::new();
 
-    fn increment(&mut self, person_a: Person, person_b: Person) {
-        let mut weight_a = self.0.get_mut(&person_a).unwrap();
-        let Weighting(count,_) = weight_a.iter().filter(|Weighting(_,p)| p == &person_b).next().unwrap().clone();
-        weight_a.remove(&Weighting(count, person_b.clone()));
-        weight_a.insert(Weighting(count+1, person_b.clone()));
+        let mut last_picker = self.previous_dealer.clone();
+
+        let next_dealer= self.get_next_picker(&last_picker);
+    
+        while !self.people.is_empty() {
+            if self.people.len() == 3 {
+                let mut x = self.people.into_iter();
+    
+                result.push(Pick::Triple(
+                    x.next().unwrap(),
+                    x.next().unwrap(),
+                    x.next().unwrap(),
+                ));
+    
+                break;
+            }
+    
+            if let Some(person) = self.get_next_picker(&last_picker) {
+                let person_match = self.people.iter().max_by(|x, y| x.cmp(y)).unwrap().clone();
+    
+                self.people.remove(&person);
+                self.people.remove(&person_match);
+                last_picker = Some(person.clone());
+    
+                result.push(Pick::Pair(person, person_match));
+            } else {
+                panic!("wat")
+            }
+        }
+    
+        (result, next_dealer)
     }
 }
+
 
 #[derive(Debug)]
 pub enum Pick {
@@ -84,72 +172,36 @@ impl Pick {
     }
 }
 
-fn make_selection(mut people: PeopleWeighting) -> Vec<Pick> {
-    let mut result = Vec::new();
-
-    while !people.0.is_empty() {
-        if people.0.len() == 3 {
-            result.push(Pick::Triple(
-                people.0.pop_first().unwrap().0,
-                people.0.pop_first().unwrap().0,
-                people.0.pop_first().unwrap().0,
-            ));
-            
-            break;
-        }
-
-        if let Some((person, weightings)) = people.0.pop_first() {
-            if let Some(next) = weightings
-                .iter()
-                .filter(|w| !result.iter().any(|p: &Pick| p.contains(&w.1)))
-                .next()
-            {
-                people.0.remove(&person);
-                people.0.remove(&next.1);
-
-                result.push(Pick::Pair(person, next.1.clone()));
-            } else {
-                panic!("wat")
-            }
-        } else {
-            panic!("wat")
-        }
-    }
-
-    result
-}
-
 #[test]
 fn test_bad_add() {
-    let mut people = PeopleWeighting::new();
-    people.push(Person { name: "alice".to_owned() });
-    people.push(Person { name: "bob".to_owned() });
-    people.push(Person { name: "chuck".to_owned() });
-    people.push(Person { name: "dave".to_owned() });
+    let mut people = PersonSet::new();
+    people.add_person("alice".to_owned());
+    people.add_person("bob".to_owned());
+    people.add_person("chuck".to_owned());
+    people.add_person("dave".to_owned());
 
-    let first_round = make_selection(people.clone());
+    let (first_round, new_dealer) = people.clone().make_selection();
 
     println!("first round: {:#?}", first_round);
 
-    people.apply_picks(first_round);
+    people.apply_picks(first_round, new_dealer);
 
-    people.push(Person { name: "edward".to_owned() });
+    people.add_person("edward".to_owned());
 
-    let second_round = make_selection(people.clone());
+    let (second_round, new_dealer) = people.clone().make_selection();
 
     println!("second round: {:#?}", second_round);
 
-    people.apply_picks(second_round);
+    people.apply_picks(second_round, new_dealer);
 
-    people.push(Person { name: "fred".to_owned() });
+    people.add_person("fred".to_owned());
 
-    let third_round = make_selection(people.clone());
+
+    let (third_round, new_dealer) = people.clone().make_selection();
 
     println!("third round: {:#?}", third_round);
 
-    people.apply_picks(third_round);
-    
-    println!("{:#?}", people);
+    people.apply_picks(third_round, new_dealer);
 
     panic!("wat");
 }
