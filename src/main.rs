@@ -4,6 +4,8 @@ mod cron;
 mod matrix;
 mod picker;
 
+use std::path::Path;
+
 use argh::FromArgs;
 use matrix::Bot;
 use tokio::select;
@@ -54,6 +56,13 @@ struct BruBotArgs {
         default = "String::from(\"-bot$\")"
     )]
     ignored_members: String,
+
+    #[argh(
+        option,
+        description = "ignored members",
+        default = "String::from(\".\")"
+    )]
+    config_dir: String,
 }
 
 #[tokio::main]
@@ -71,7 +80,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .await?;
 
-    let cron_job = BruTimeJob::new(bot.clone(), args.cron);
+    let cron_job = BruTimeJob::new(
+        bot.clone(),
+        args.cron,
+        Path::new(&args.config_dir).join("people.ron"),
+    );
 
     if let Err(e) = select! {
         result = cron_job.start() => result,

@@ -25,10 +25,7 @@ impl Bot {
     ) -> Result<Bot, Box<dyn std::error::Error>> {
         let ignored_members = Regex::new(&ignored_members)?;
 
-        let mut home = dirs::home_dir().expect("no home directory found");
-        home.push("bru_bot");
-
-        let client_config = ClientConfig::new().store_path(home);
+        let client_config = ClientConfig::new();
 
         let homeserver_url =
             Url::parse(&homeserver_url).expect("Couldn't parse the homeserver URL");
